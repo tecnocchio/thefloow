@@ -50,7 +50,7 @@ public class DbWrapper {
 		return db.findMost(numberOfResult,DbConnection.UNCOMMON);	
 	}
 
-	public Map<String, Long> getMostLongWords(Integer numberOfResult) {
+	public Map<String, Integer> getMostLongWords(Integer numberOfResult) {
 		return db.findMostLong(numberOfResult,DbConnection.UNCOMMON);
 	}
 

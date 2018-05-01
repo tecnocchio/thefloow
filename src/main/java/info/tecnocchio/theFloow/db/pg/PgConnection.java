@@ -8,21 +8,26 @@ import java.util.Map;
 import info.tecnocchio.theFloow.db.DbConnection;
 
 /**
- * @author maurizio
- *
- */
+* The theFloow program is an application that
+* simply parse wikimedia dump to count words.
+*
+* @author Maurizio Barbato
+* @email tecnocchio@gmail.com
+* 
+*/
 public class PgConnection implements DbConnection {
 
 	@Override
 	public boolean connect(String host, Integer port, String dbcName, String user, String pwd) {
-		// TODO Auto-generated method stub
+		// open the connection
+		// this. dbcname=dbcname, for config table
 		return false;
 	}
 
 	@Override
 	public void close() {
-		// TODO Auto-generated method stub
-		
+		//  closes the connection
+
 	}
 
 
@@ -30,50 +35,55 @@ public class PgConnection implements DbConnection {
 
 	@Override
 	public Long getFinalChunk() {
-		// TODO Auto-generated method stub
+		// select finalchunk from config
 		return null;
 	}
 
 	@Override
 	public void setFinalChunk(Long cnkFinal) {
-		// TODO Auto-generated method stub
+		// update config set finalchunk=cnkFinal
 		
 	}
 
 
 	@Override
 	public Map<String, Long> findMost(Integer numberOfResult, Integer common) {
-		// TODO Auto-generated method stub
+		// order=comon==common?desc:asc
+		// select word,count from words ordered by count order 
 		return null;
 	}
 
 	@Override
-	public Map<String, Long> findMostLong(Integer numberOfResult, Integer common) {
-		// TODO Auto-generated method stub
+	public Map<String, Integer> findMostLong(Integer numberOfResult, Integer common) {
+		// order=comon==common?desc:asc
+		// select word,count from words ordered by length(word) order 
 		return null;
 	}
 
 	@Override
 	public Long countWordsInDb() {
-		// TODO Auto-generated method stub
+		// select count(*) from words
 		return null;
 	}
 
 	@Override
 	public Long getNextChunkToWork(Long currentChunk, Long jump) {
-		// TODO Auto-generated method stub
+		// lot of stuff
 		return null;
 	}
 
 	@Override
 	public void checkDbStructure() {
-		// TODO Auto-generated method stub
-		
+		// check db structure or create it
+		// create config row with dbcname
 	}
 
 	@Override
 	public void updateChunkMap(Long pieceToWork, Map<String, Integer> map) {
-		// TODO Auto-generated method stub
+		
+		// begin transaction
+		// update all words and chunk
+		// end transaction
 		
 	}
 

@@ -5,6 +5,9 @@ Read a really huge file and parse it to count words used.
 info.tecnocchio.theFloow.MainClass
 
 usage
+java -jar challenge-jar-with-dependencies.jar -source filename -mongo host:port -output numOfWordToShow
+
+source and mongo are mandatory, params order don't matter
 
 notes
   
@@ -15,5 +18,5 @@ Analyzing the file before process:
 at moment i don't count before, the number of chunk in the file, but i could, the choice is on how many process are ran each time. For a large number of process would be a good approach, for few process is not so useful
 I don't do an hash of the file, i assume that if multiple process are run, the filename (without path) is what link each processes, it would be time expensive.
 
-Running a process:
-Running a finished process don't restart, produces only output and statistics from mongo if "-output num" in arguments 
+Behaviour:
+Running a finished process don't restart all, produces only output and statistics from mongo if "-output num" in arguments 

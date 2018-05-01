@@ -12,9 +12,7 @@ import java.util.Map.Entry;
 import org.bson.Document;
 
 import com.mongodb.MongoClient;
-import com.mongodb.MongoTimeoutException;
 import com.mongodb.MongoWriteException;
-import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
@@ -22,12 +20,9 @@ import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
 
-import info.tecnocchio.theFloow.db.DatabaseAccessException;
 import info.tecnocchio.theFloow.db.DbConnection;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
-import ch.qos.logback.core.net.SyslogOutputStream;
-
 import org.slf4j.LoggerFactory;
 
 /**
@@ -239,40 +234,45 @@ public class MongoConnection implements DbConnection {
 		 * In a simple  solution a program break during the updateWordsMap()
 		 * will lost word count.
 		 * a trick to solve the problem could be :
-		 * I could  update chunk status at the end,
-		 * so I could find the words which has no chunknumber property and update only if not updated
-		 * this will produce a number o property to words that i don't like but it work
+		 * I could find the words which had no chunknumber property and update only 
+		 * if not updated in the single operation
+		 * this will produce a number of property to words that i don't like but it work
 		 * if the process is stopped in the while only non updated 
 		 * words will be updated from the next process  
+		 * I could  update chunk status at the end, when all words are processed
 		 * 
 		 */
-		Long start=System.currentTimeMillis();
-		System.out.println("start "+start);
 
 		updateWordsMap(map,chunk);
 		MongoCollection<Document> collection = db.getCollection(TABLE_CHUNKS);
-		Document filter = new Document().append(CHUNK_NUM_PROP_FIELD, chunk).append(CHUNK_STATUS_PROP_FIELD,
-				Status.START.name());
+		Document filter = new Document().append(CHUNK_NUM_PROP_FIELD, chunk)
+				.append(CHUNK_STATUS_PROP_FIELD,Status.START.name());
 		Document update = new Document().append("$set", new Document()
-				.append(CHUNK_STATUS_PROP_FIELD, Status.DONE.name()).append(CHUNK_END_PROP_FIELD, new Date()));
+				.append(CHUNK_STATUS_PROP_FIELD, Status.DONE.name())
+				.append(CHUNK_END_PROP_FIELD, new Date()));
 		Document dChunk = collection.findOneAndUpdate(filter, update);
 	
 
 	}
 
 	private void updateWordsMap(Map<String, Integer> map,long chunk) {
+		// if we don't find the word we create it
 		FindOneAndUpdateOptions fOuo = new FindOneAndUpdateOptions().upsert(true);
-
+		
 		MongoCollection<Document> collection = db.getCollection(TABLE_WORDS);
-	    int a=2;
+		// for each word to update 
 		for (Entry<String, Integer> e : map.entrySet()) {
-
+			// filter find the word to update
+			// and is not updated for current chunk
 			Document filter = new Document().append(WORD_WORDNAME_PROP_FIELD, e.getKey())
 					.append("chunks.c"+chunk, new Document("$exists", false));
+			// the document will increment count
+			// add to the set of chunks current chunk number
 			Document update = new Document().append("$inc",
 					new Document().append(WORD_COUNT_PROP_FIELD, e.getValue().longValue()));
 			update.append("$addToSet", new Document()
 					.append("chunks",new Document("c"+chunk,"ok")));
+			// process the operation
 			collection.findOneAndUpdate(filter, update, fOuo);
 
 		}
@@ -282,16 +282,17 @@ public class MongoConnection implements DbConnection {
 	public Map<String, Long> findMost(Integer numberOfResult, Integer common) {
 
 		Map<String, Long> map = new LinkedHashMap<>();
-		db.getCollection(TABLE_WORDS).find().sort(new Document(WORD_COUNT_PROP_FIELD, common)).limit(numberOfResult)
-				.iterator().forEachRemaining(
-						d -> map.put(d.getString(WORD_WORDNAME_PROP_FIELD), d.getLong(WORD_COUNT_PROP_FIELD)));
+		db.getCollection(TABLE_WORDS).find()
+		.sort(new Document(WORD_COUNT_PROP_FIELD, common)).limit(numberOfResult)
+				.iterator()
+				.forEachRemaining(d -> map.put(d.getString(WORD_WORDNAME_PROP_FIELD), d.getLong(WORD_COUNT_PROP_FIELD)));
 
 		return map;
 	}
 
 	@Override
-	public Map<String, Long> findMostLong(Integer numberOfResult, Integer common) {
-		Map<String, Long> map = new LinkedHashMap<>();
+	public Map<String, Integer> findMostLong(Integer numberOfResult, Integer common) {
+		Map<String, Integer> map = new LinkedHashMap<>();
 
 		MongoCollection<Document> collection = db.getCollection(TABLE_WORDS);
 
@@ -305,7 +306,7 @@ public class MongoConnection implements DbConnection {
 								new Document("$project", new Document("field_length", 0)),
 								new Document("$limit", numberOfResult)))
 				.iterator().forEachRemaining(d -> map.put(d.getString(WORD_WORDNAME_PROP_FIELD),
-						(long) d.getString(WORD_WORDNAME_PROP_FIELD).length()));
+						 d.getString(WORD_WORDNAME_PROP_FIELD).length()));
 		return map;
 	}
 

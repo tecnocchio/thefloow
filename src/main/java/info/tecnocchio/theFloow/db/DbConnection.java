@@ -93,7 +93,7 @@ public interface DbConnection {
 	 * @param common ( most long words found )
 	 * @return a map with the query results
 	 */
-	public Map<String, Long> findMostLong(Integer numberOfResult, Integer common);
+	public Map<String, Integer> findMostLong(Integer numberOfResult, Integer common);
 
 	/**
 	 * @return number of word found
