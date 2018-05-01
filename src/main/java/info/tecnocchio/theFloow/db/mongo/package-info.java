@@ -5,4 +5,4 @@
  * @author maurizio
  *
  */
-package info.tecnocchio.theFloow;
+package info.tecnocchio.theFloow.db.mongo;

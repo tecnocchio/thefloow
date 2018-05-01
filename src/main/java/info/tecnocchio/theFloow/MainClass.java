@@ -3,6 +3,8 @@
  */
 package info.tecnocchio.theFloow;
 
+import info.tecnocchio.theFloow.db.DatabaseAccessException;
+import info.tecnocchio.theFloow.engine.ProcessController;
 import info.tecnocchio.theFloow.ui.ArgumentsException;
 import info.tecnocchio.theFloow.ui.ParseArguments;
 import info.tecnocchio.theFloow.ui.ParsedArguments;
@@ -39,7 +41,7 @@ public class MainClass {
 	private void runInstance(ParsedArguments a) {
 		try {
 			new ProcessController(a).start();
-		} catch (Exception e) {
+		} catch (DatabaseAccessException e) {
 			System.err.println(e.getMessage());
 		}
 

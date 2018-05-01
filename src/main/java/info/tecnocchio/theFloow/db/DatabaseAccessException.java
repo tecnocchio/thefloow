@@ -1,30 +1,30 @@
 /**
  * 
  */
-package info.tecnocchio.theFloow.ui;
+package info.tecnocchio.theFloow.db;
 
 /**
  * @author maurizio
  *
  */
-public class ArgumentsException extends Exception {
+public class DatabaseAccessException extends Exception {
 
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = 5529445096814056048L;
+	private static final long serialVersionUID = 7221274458696189038L;
 
 	/**
 	 * 
 	 */
-	public ArgumentsException() {
+	public DatabaseAccessException() {
 		// TODO Auto-generated constructor stub
 	}
 
 	/**
 	 * @param message
 	 */
-	public ArgumentsException(String message) {
+	public DatabaseAccessException(String message) {
 		super(message);
 		// TODO Auto-generated constructor stub
 	}
@@ -32,7 +32,7 @@ public class ArgumentsException extends Exception {
 	/**
 	 * @param cause
 	 */
-	public ArgumentsException(Throwable cause) {
+	public DatabaseAccessException(Throwable cause) {
 		super(cause);
 		// TODO Auto-generated constructor stub
 	}
@@ -41,7 +41,7 @@ public class ArgumentsException extends Exception {
 	 * @param message
 	 * @param cause
 	 */
-	public ArgumentsException(String message, Throwable cause) {
+	public DatabaseAccessException(String message, Throwable cause) {
 		super(message, cause);
 		// TODO Auto-generated constructor stub
 	}
@@ -52,7 +52,8 @@ public class ArgumentsException extends Exception {
 	 * @param enableSuppression
 	 * @param writableStackTrace
 	 */
-	public ArgumentsException(String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+	public DatabaseAccessException(String message, Throwable cause, boolean enableSuppression,
+			boolean writableStackTrace) {
 		super(message, cause, enableSuppression, writableStackTrace);
 		// TODO Auto-generated constructor stub
 	}
