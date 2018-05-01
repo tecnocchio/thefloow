@@ -25,17 +25,8 @@ public class PgConnection implements DbConnection {
 		
 	}
 
-	@Override
-	public void checkDbStructure(String fileName) {
-		// TODO Auto-generated method stub
-		
-	}
 
-	@Override
-	public Long getNextChunkToWork(Long currentChunk) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+
 
 	@Override
 	public Long getFinalChunk() {
@@ -49,16 +40,41 @@ public class PgConnection implements DbConnection {
 		
 	}
 
-	@Override
-	public boolean updateChunkMap(Long pieceToWork, Map<String, Integer> map) {
-		// TODO Auto-generated method stub
-		return false;
-	}
 
 	@Override
 	public Map<String, Long> findMost(Integer numberOfResult, Integer common) {
 		// TODO Auto-generated method stub
 		return null;
+	}
+
+	@Override
+	public Map<String, Long> findMostLong(Integer numberOfResult, Integer common) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Long countWordsInDb() {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public Long getNextChunkToWork(Long currentChunk, Long jump) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public void checkDbStructure() {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void updateChunkMap(Long pieceToWork, Map<String, Integer> map) {
+		// TODO Auto-generated method stub
+		
 	}
 
 

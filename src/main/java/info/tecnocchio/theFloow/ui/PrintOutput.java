@@ -14,8 +14,14 @@ public class PrintOutput {
 
 	public PrintOutput(DbConnection m,Integer outputWordCount) {
 		DbWrapper monWrap = new DbWrapper(m);
-		System.out.println(monWrap.getLessUsedWords(outputWordCount));
-		System.out.println(monWrap.getMostUsedWords(outputWordCount));
+		System.out.println("Number of words found: "+monWrap.countWords());
+		System.out.println("Less "+outputWordCount+" used words:");
+		monWrap.getLessUsedWords(outputWordCount).entrySet().forEach(System.out::println);
+		System.out.println("Most "+outputWordCount+" used words:");
+		monWrap.getMostUsedWords(outputWordCount).entrySet().forEach(System.out::println);
+		System.out.println("Most "+outputWordCount+" long words:");
+		monWrap.getMostLongWords(outputWordCount).entrySet().forEach(System.out::println);
+	
 		
 	}
 

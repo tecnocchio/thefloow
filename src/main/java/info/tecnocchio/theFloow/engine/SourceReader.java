@@ -90,12 +90,13 @@ public class SourceReader {
 		//if (pieceToWork%2==0)
 		System.out.println(pieceToWork+" nextChunkSkip "+System.currentTimeMillis());
 
-		if (!it.hasNext()) {
-			setLastchunk(pieceToWork - 1);
-			return "";
-		}
-		for (int x = 0; x < pieceToWork * numOfLines; x++)
+		for (Long x = 0L; x < pieceToWork * numOfLines; x++) {
+			if (!it.hasNext()) {
+				setLastchunk(x);
+				return "";
+			}
 			it.nextLine();
+		}
 
 		return getNextChunk(pieceToWork, numOfLines);
 	}

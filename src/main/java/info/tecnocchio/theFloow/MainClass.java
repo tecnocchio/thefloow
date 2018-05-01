@@ -1,6 +1,11 @@
 /**
- * 
- */
+* The theFloow program is an application that
+* simply parse wikimedia dump to count words.
+*
+* @author Maurizio Barbato
+* @email tecnocchio@gmail.com
+* 
+*/
 package info.tecnocchio.theFloow;
 
 import info.tecnocchio.theFloow.db.DatabaseAccessException;
@@ -10,15 +15,16 @@ import info.tecnocchio.theFloow.ui.ParseArguments;
 import info.tecnocchio.theFloow.ui.ParsedArguments;
 
 /**
- * @author maurizio
+ * Start Class
  *
  */
 public class MainClass {
 
 	/**
-	 * 
+	 * If arguments are clear enough we start the process
 	 */
 	public MainClass(String[] args) {
+		
 		ParsedArguments a = null;
 		try {
 			a = ParseArguments.parse(args);
@@ -26,7 +32,7 @@ public class MainClass {
 			System.err.println(ae.getMessage());
 			return;
 		}
-		runInstance(a);
+		runProcess(a);
 
 	}
 
@@ -38,7 +44,7 @@ public class MainClass {
 
 	}
 
-	private void runInstance(ParsedArguments a) {
+	private void runProcess(ParsedArguments a) {
 		try {
 			new ProcessController(a).start();
 		} catch (DatabaseAccessException e) {

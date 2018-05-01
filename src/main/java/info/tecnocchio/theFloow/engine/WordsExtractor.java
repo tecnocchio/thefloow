@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
  */
 public class WordsExtractor {
 
-	private final String REGEX="[^a-zA-Z_]+";
+	private final String REGEX="[^a-zA-Z]+";
 	@SuppressWarnings("unused")
 	private final String REGEX_IT="[^a-zA-Z_àéèìòù]+";
 

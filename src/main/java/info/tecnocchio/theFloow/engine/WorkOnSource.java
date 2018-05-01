@@ -7,6 +7,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 
+import info.tecnocchio.theFloow.Config;
 import info.tecnocchio.theFloow.db.DbConnection;
 import info.tecnocchio.theFloow.db.DbWrapper;
 
@@ -14,9 +15,8 @@ import info.tecnocchio.theFloow.db.DbWrapper;
  * @author maurizio
  *
  */
-public class WorkOnSource {
+public class WorkOnSource implements Config{
 
-	private static final Integer NUMBER_OF_LINES = 500000;
 
 	/**
 	 * 
@@ -34,7 +34,7 @@ public class WorkOnSource {
 	public void work() {
 		DbWrapper monWrap = new DbWrapper(dbConn);
 		Long oldPieceToWork = -1L;
-		Long pieceToWork = monWrap.getNextPieceToWork(oldPieceToWork);
+		Long pieceToWork = monWrap.getNextPieceToWork(oldPieceToWork,JUMP);
 
 		SourceReader sou = null;
 		try {
@@ -53,7 +53,7 @@ public class WorkOnSource {
 				Map<String, Integer> chunkMap = new WordsExtractor().count(chunk);
 				monWrap.storeMap(pieceToWork, chunkMap, sou.getLastchunk());
 				oldPieceToWork = pieceToWork;
-				pieceToWork = monWrap.getNextPieceToWork(oldPieceToWork);
+				pieceToWork = monWrap.getNextPieceToWork(oldPieceToWork,JUMP);
 			}
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

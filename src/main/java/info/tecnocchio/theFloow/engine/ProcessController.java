@@ -13,10 +13,15 @@ import info.tecnocchio.theFloow.db.pg.PgConnection;
 import info.tecnocchio.theFloow.ui.ParsedArguments;
 import info.tecnocchio.theFloow.ui.PrintOutput;
 
+
 /**
- * @author maurizio
- *
- */
+* The theFloow program is an application that
+* simply parse wikimedia dump to count words.
+*
+* @author Maurizio Barbato
+* @email tecnocchio@gmail.com
+* 
+*/
 public class ProcessController {
 
 	private ParsedArguments arg;
@@ -30,7 +35,7 @@ public class ProcessController {
 			dbConn = new PgConnection();
 		if (!dbConn.connect(a.getHostDb(), a.getPortDb(), a.getNameDb(), a.getUserDb(), a.getPwdDb()))
 			throw new DatabaseAccessException("Problem with database access!");
-		dbConn.checkDbStructure(a.getFileName());
+		dbConn.checkDbStructure();
 
 	}
 
