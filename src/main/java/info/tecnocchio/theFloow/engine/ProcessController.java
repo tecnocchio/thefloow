@@ -3,7 +3,7 @@
  */
 package info.tecnocchio.theFloow.engine;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
 
 import info.tecnocchio.theFloow.db.DatabaseAccessException;
 import info.tecnocchio.theFloow.db.DbConnection;
@@ -47,9 +47,11 @@ public class ProcessController {
 			// process the file
 			new WorkOnSource(arg.getFileName(), dbConn).work();
 			
-		} catch (FileNotFoundException e) {
+		} catch (IOException e) {
 			// argument processing did check file exists before
 			e.printStackTrace();
+			System.out.println("Error during file reading");
+			return;
 		}
 		
 		// if request give output

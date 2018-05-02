@@ -8,14 +8,19 @@ import java.io.File;
 //import info.tecnocchio.theFloow.debug.MockArguments;
 
 /**
- * @author maurizio
+ * The theFloow program is an application that simply parse wikimedia dump to
+ * count words.
  *
+ * @author Maurizio Barbato
+ * @email tecnocchio@gmail.com
+ * 
  */
 public class ParseArguments {
 
 	/**
 	 * @param args
-	 * 
+	 * try to do all a series of check before start
+	 * take arguments only if are fine
 	 */
 
 	public static ParsedArguments parse(String[] args) throws ArgumentsException {

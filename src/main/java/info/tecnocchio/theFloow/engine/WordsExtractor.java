@@ -9,8 +9,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @author maurizio
+ * The theFloow program is an application that simply parse wikimedia dump to
+ * count words.
  *
+ * @author Maurizio Barbato
+ * @email tecnocchio@gmail.com
+ * 
  */
 public class WordsExtractor {
 
@@ -18,6 +22,12 @@ public class WordsExtractor {
 	@SuppressWarnings("unused")
 	private final String REGEX_IT="[^a-zA-Z_àéèìòù]+";
 
+	/*
+	 * Uses regex to extract words
+	 * create a list
+	 * use Collection power to extract the map of words and its occurrence
+	 * filtering zero length or null 
+	 */
 	public Map<String, Integer> count(String nextChunk) {
 
 		List<String> words = Arrays.asList(nextChunk.split(REGEX));

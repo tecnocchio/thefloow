@@ -3,23 +3,25 @@
  */
 package info.tecnocchio.theFloow.db.mongo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
 import org.bson.Document;
-
 import com.mongodb.MongoClient;
 import com.mongodb.MongoWriteException;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.FindOneAndUpdateOptions;
 import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Indexes;
-
 import info.tecnocchio.theFloow.db.DbConnection;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.LoggerContext;
@@ -76,13 +78,11 @@ public class MongoConnection implements DbConnection {
 	@Override
 	public void checkDbStructure() {
 		/*
-		 * i look in collection config if find a document with status attribute
-		 * if i dont i create it
+		 * i look in collection config if find a document with status attribute if i
+		 * dont i create it
 		 */
 
-		if (null == db.getCollection(TABLE_CONFIG)
-				.find(Filters.exists(CONFIG_STATUS_PROP_FIELD))
-				.first()) {
+		if (null == db.getCollection(TABLE_CONFIG).find(Filters.exists(CONFIG_STATUS_PROP_FIELD)).first()) {
 			initDbConfig();
 		}
 
@@ -116,51 +116,48 @@ public class MongoConnection implements DbConnection {
 	@Override
 	public Long getNextChunkToWork(Long currentChunk, Long jump) {
 		/*
-		 * this function is among most important of the whole process,
-		 * optimizing this job means optimizing a lot the time
-		 * on my test the speed of reading the file was the bottleneck as supposed to be
-		 * organize a good sequential reading from different process is the key 
-		 * to the fast approach
-		 * this function could have a lot of funny work inside with a lot of time improving
-		 * what i did is a simple approach but i wanted to have a result 
+		 * this function is among most important of the whole process, optimizing this
+		 * job means optimizing a lot the time on my test the speed of reading the file
+		 * was the bottleneck as supposed to be organize a good sequential reading from
+		 * different process is the key to the fast approach this function could have a
+		 * lot of funny work inside with a lot of time improving what i did is a simple
+		 * approach but i wanted to have a result
 		 */
 
 		Long finalChunk = getFinalChunk();// check if someone else discovered final chunk
-
-		// as a first preferred choice there is the next chunk 
+	
+		// as a first preferred choice there is the next chunk
 		Document cnkDoc = db.getCollection(TABLE_CHUNKS).find(Filters.eq(CHUNK_NUM_PROP_FIELD, currentChunk + 1))
 				.first();
-		// next chunk is free to work(cnkDoc == null)  and current is not beyond final chunk
+		// next chunk is free to work(cnkDoc == null) and current is not beyond final
+		// chunk
 		if (cnkDoc == null && (finalChunk == null || finalChunk > (currentChunk + 1L))) {
-			// create the new chunk and select it for work, no worries about concurrency, 
-			// in the worst case the chunk is worked twice, but only first commit words count
+			// create the new chunk and select it for work, no worries about concurrency,
+			// in the worst case the chunk is worked twice, but only first commit words
+			// count
 			createNewChunk(currentChunk + 1);
 			return currentChunk + 1;
 		}
 		// next chunk is not free so:
 		// search for bigger chunk in progress and try to skip jump
-		cnkDoc = db.getCollection(TABLE_CHUNKS).find()
-				.sort(new Document(CHUNK_NUM_PROP_FIELD, DbConnection.COMMON)).first();
-		// last chunk present  ( with bigger number )		
-		long cnkNum = cnkDoc.getLong(CHUNK_NUM_PROP_FIELD) + jump; 
-		// new chunk number proposed, can't exists because is max+jump			
+		cnkDoc = db.getCollection(TABLE_CHUNKS).find().sort(new Document(CHUNK_NUM_PROP_FIELD, DbConnection.COMMON))
+				.first();
+		// last chunk present ( with bigger number )
+		long cnkNum = cnkDoc.getLong(CHUNK_NUM_PROP_FIELD) + jump;
+		// new chunk number proposed, can't exists because is max+jump
 		if (finalChunk == null || cnkNum <= finalChunk) {
 			// the proposed is not beyond end of file
 			createNewChunk(cnkNum);
 			return cnkNum;
 		}
-		// after the jump over the last we are beyond end of file  so :
-		// we have to look for holes 
-        // next code is ugly, i am really sorry for this : 
-		// search missing chunk from start
-		// to finalChunk 
-		for (Long g = 0L; g < finalChunk; g++) {
-			if (db.getCollection(TABLE_CHUNKS).find(Filters.eq(CHUNK_NUM_PROP_FIELD, g)).first() == null) {
-				createNewChunk(g);
-				return g;
-			}
+		// find holes in chunk sequences
+		Long hole = findHolesInChunkSequence(finalChunk);
+		if (hole != null) {
+			createNewChunk(hole);
+			return hole;
 		}
-		// once all hole are closed, we recover the process broken, stopped, really slow... 
+		// once all hole are closed, we recover the process broken, stopped, or just really
+		// slow...
 		// search unfinished chunk
 		Document firstChunkNotFinished = db.getCollection(TABLE_CHUNKS)
 				.find(new Document(CHUNK_STATUS_PROP_FIELD, DbConnection.Status.START.name()))
@@ -168,7 +165,7 @@ public class MongoConnection implements DbConnection {
 		if (firstChunkNotFinished != null) {
 			cnkNum = firstChunkNotFinished.getLong(CHUNK_NUM_PROP_FIELD);
 			if (finalChunk == null || cnkNum <= finalChunk) {
-				// for debug I provide an increment on chunk over which works more processes  
+				// for debug I provide an increment on chunk over which works more processes
 				Document update = new Document().append("$inc", new Document().append(CHUNK_NUMWORKING_PROP_FIELD, 1L));
 				db.getCollection(TABLE_CHUNKS).findOneAndUpdate(firstChunkNotFinished, update);
 				// only the fastest process will push data of the chunk
@@ -179,19 +176,56 @@ public class MongoConnection implements DbConnection {
 		return null;
 	}
 
+	// create a list of all chunk and remove worked ones to find missing,
+	// lets test mongo performance :)
+	@SuppressWarnings("unchecked")
+	private Long findHolesInChunkSequence(Long finalChunk) {
+
+		if (finalChunk == null)
+			return null;
+
+		// after the jump over the last we are beyond end of file so :
+		// we have to look for holes
+		// next code uses mongo aggregation to find missing chunk :
+		// search each missing chunk
+		Document missingChunks = db.getCollection(TABLE_CHUNKS)
+				.aggregate(
+						Arrays.asList(
+								Aggregates.group("$group", Accumulators.push("values",
+										"$" + CHUNK_NUM_PROP_FIELD)),// create an array of worked
+								Aggregates.project(new Document("missing",
+										new Document("$setDifference", Arrays.asList(
+												new Document("$range", Arrays.asList(0, finalChunk, 1)), "$values"))) // create an array of all
+														.append("_id", false))))
+				.first();
+		List<Long> missingList = new ArrayList<>();
+		if (missingChunks != null)
+			missingList = (List<Long>) missingChunks.get("missing");
+		if (!missingList.isEmpty())
+			return intToLong(missingList.get(0));
+		return null;
+	}
+	// we are working on Long, but mongo is javascript so can do strange things with types
+	private Long intToLong(Object l) { 
+		if (l instanceof Long)
+			return (Long) l;
+		if (l instanceof Integer)
+			return ((Integer) l).longValue();
+		return null;
+	}
+
 	private void createNewChunk(Long cnkNum) {
 		try {
-		MongoCollection<Document> collection = db.getCollection(TABLE_CHUNKS);
-		Document document = new Document();
-		document.put(CHUNK_NUM_PROP_FIELD, cnkNum);
-		document.put(CHUNK_STATUS_PROP_FIELD, Status.START.name());
-		document.put(CHUNK_STARTED_PROP_FIELD, new Date());
-		document.put(CHUNK_END_PROP_FIELD, null);
-		collection.insertOne(document);
-		}
-		catch(MongoWriteException me) {
+			MongoCollection<Document> collection = db.getCollection(TABLE_CHUNKS);
+			Document document = new Document();
+			document.put(CHUNK_NUM_PROP_FIELD, cnkNum);
+			document.put(CHUNK_STATUS_PROP_FIELD, Status.START.name());
+			document.put(CHUNK_STARTED_PROP_FIELD, new Date());
+			document.put(CHUNK_END_PROP_FIELD, null);
+			collection.insertOne(document);
+		} catch (MongoWriteException me) {
 			// concurrency problem
-			// in the worst case a chunk is worked twice, 
+			// in the worst case a chunk is worked twice,
 			// but pushed once, so is a risk of only time waste
 			// it is supposed to be really rare
 		}
@@ -199,7 +233,7 @@ public class MongoConnection implements DbConnection {
 
 	@Override
 	public Long getFinalChunk() {
-		//retrieve the value from config document of last chunk if found
+		// retrieve the value from config document of last chunk if found
 		Document confDoc = db.getCollection(TABLE_CONFIG).find(Filters.exists(CONFIG_STATUS_PROP_FIELD)).first();
 		if (confDoc != null)
 			return confDoc.getLong(CONFIG_FINALCHUNK_PROP_FIELD);
@@ -208,8 +242,8 @@ public class MongoConnection implements DbConnection {
 
 	@Override
 	public void setFinalChunk(Long fChunk) {
-		
-		//store the value in config document of last chunk 
+
+		// store the value in config document of last chunk
 
 		MongoCollection<Document> collection = db.getCollection(TABLE_CONFIG);
 
@@ -225,53 +259,47 @@ public class MongoConnection implements DbConnection {
 	@Override
 	public void updateChunkMap(Long chunk, Map<String, Integer> map) {
 		/*
-		 * This is the second most important function of the whole program
-		 * every time a chunk is worked we have to put values in mongo
-		 * the sql way is to close the chunk and update the map in a single transaction
-		 * mongo admit atomic operation inside a single document otherwise 
-		 * MongoDB 4.0, scheduled for release in Summer 2018, 
-		 * will add support for multi-document transactions.    
-		 * In a simple  solution a program break during the updateWordsMap()
-		 * will lost word count.
-		 * a trick to solve the problem could be :
-		 * I could find the words which had no chunknumber property and update only 
-		 * if not updated in the single operation
+		 * This is the second most important function of the whole program every time a
+		 * chunk is worked we have to put values in mongo the sql way is to close the
+		 * chunk and update the map in a single transaction mongo admit atomic operation
+		 * inside a single document otherwise MongoDB 4.0, scheduled for release in
+		 * Summer 2018, will add support for multi-document transactions. In a simple
+		 * solution a program break during the updateWordsMap() will lost word count. a
+		 * trick to solve the problem could be : I could find the words which had no
+		 * chunknumber property and update only if not updated in the single operation
 		 * this will produce a number of property to words that i don't like but it work
-		 * if the process is stopped in the while only non updated 
-		 * words will be updated from the next process  
-		 * I could  update chunk status at the end, when all words are processed
+		 * if the process is stopped in the while only non updated words will be updated
+		 * from the next process I could update chunk status at the end, when all words
+		 * are processed
 		 * 
 		 */
 
-		updateWordsMap(map,chunk);
+		updateWordsMap(map, chunk);
 		MongoCollection<Document> collection = db.getCollection(TABLE_CHUNKS);
-		Document filter = new Document().append(CHUNK_NUM_PROP_FIELD, chunk)
-				.append(CHUNK_STATUS_PROP_FIELD,Status.START.name());
+		Document filter = new Document().append(CHUNK_NUM_PROP_FIELD, chunk).append(CHUNK_STATUS_PROP_FIELD,
+				Status.START.name());
 		Document update = new Document().append("$set", new Document()
-				.append(CHUNK_STATUS_PROP_FIELD, Status.DONE.name())
-				.append(CHUNK_END_PROP_FIELD, new Date()));
-		Document dChunk = collection.findOneAndUpdate(filter, update);
-	
+				.append(CHUNK_STATUS_PROP_FIELD, Status.DONE.name()).append(CHUNK_END_PROP_FIELD, new Date()));
+		 collection.findOneAndUpdate(filter, update);
 
 	}
 
-	private void updateWordsMap(Map<String, Integer> map,long chunk) {
+	private void updateWordsMap(Map<String, Integer> map, long chunk) {
 		// if we don't find the word we create it
 		FindOneAndUpdateOptions fOuo = new FindOneAndUpdateOptions().upsert(true);
-		
+
 		MongoCollection<Document> collection = db.getCollection(TABLE_WORDS);
-		// for each word to update 
+		// for each word to update
 		for (Entry<String, Integer> e : map.entrySet()) {
 			// filter find the word to update
 			// and is not updated for current chunk
-			Document filter = new Document().append(WORD_WORDNAME_PROP_FIELD, e.getKey())
-					.append("chunks.c"+chunk, new Document("$exists", false));
+			Document filter = new Document().append(WORD_WORDNAME_PROP_FIELD, e.getKey()).append("chunks.c" + chunk,
+					new Document("$exists", false));
 			// the document will increment count
 			// add to the set of chunks current chunk number
 			Document update = new Document().append("$inc",
 					new Document().append(WORD_COUNT_PROP_FIELD, e.getValue().longValue()));
-			update.append("$addToSet", new Document()
-					.append("chunks",new Document("c"+chunk,"ok")));
+			update.append("$addToSet", new Document().append("chunks", new Document("c" + chunk, "ok")));
 			// process the operation
 			collection.findOneAndUpdate(filter, update, fOuo);
 
@@ -282,18 +310,18 @@ public class MongoConnection implements DbConnection {
 	public Map<String, Long> findMost(Integer numberOfResult, Integer common) {
 
 		Map<String, Long> map = new LinkedHashMap<>();
-		db.getCollection(TABLE_WORDS).find()
-		.sort(new Document(WORD_COUNT_PROP_FIELD, common)).limit(numberOfResult)
-				.iterator()
-				.forEachRemaining(d -> map.put(d.getString(WORD_WORDNAME_PROP_FIELD), d.getLong(WORD_COUNT_PROP_FIELD)));
+		db.getCollection(TABLE_WORDS).find().sort(new Document(WORD_COUNT_PROP_FIELD, common)).limit(numberOfResult)
+				.iterator().forEachRemaining(
+						d -> map.put(d.getString(WORD_WORDNAME_PROP_FIELD), d.getLong(WORD_COUNT_PROP_FIELD)));
 
 		return map;
 	}
 
+	// to get words length i use a calculated property and i sort , process really slow, but working
 	@Override
 	public Map<String, Integer> findMostLong(Integer numberOfResult, Integer common) {
 		Map<String, Integer> map = new LinkedHashMap<>();
-
+		
 		MongoCollection<Document> collection = db.getCollection(TABLE_WORDS);
 
 		collection
@@ -306,7 +334,7 @@ public class MongoConnection implements DbConnection {
 								new Document("$project", new Document("field_length", 0)),
 								new Document("$limit", numberOfResult)))
 				.iterator().forEachRemaining(d -> map.put(d.getString(WORD_WORDNAME_PROP_FIELD),
-						 d.getString(WORD_WORDNAME_PROP_FIELD).length()));
+						d.getString(WORD_WORDNAME_PROP_FIELD).length()));
 		return map;
 	}
 

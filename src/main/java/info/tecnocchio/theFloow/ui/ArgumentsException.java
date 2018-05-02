@@ -4,8 +4,12 @@
 package info.tecnocchio.theFloow.ui;
 
 /**
- * @author maurizio
+ * The theFloow program is an application that simply parse wikimedia dump to
+ * count words.
  *
+ * @author Maurizio Barbato
+ * @email tecnocchio@gmail.com
+ * 
  */
 public class ArgumentsException extends Exception {
 

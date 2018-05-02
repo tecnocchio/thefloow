@@ -7,7 +7,14 @@ import java.io.IOException;
 import java.io.InputStream;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.LineIterator;
-
+/**
+ * The theFloow program is an application that simply parse wikimedia dump to
+ * count words.
+ *
+ * @author Maurizio Barbato
+ * @email tecnocchio@gmail.com
+ * 
+ */
 public class SourceReader {
 
 	LineIterator it;
@@ -20,7 +27,9 @@ public class SourceReader {
 //		long lines=countLines(src);
 		
 	}
-
+/*
+ * It was possible to count file lines before read the chunks 
+ */
 	@SuppressWarnings("unused")
 	private long countLines(String src) throws IOException {
 		    InputStream is = new BufferedInputStream(new FileInputStream(src));
@@ -72,7 +81,7 @@ public class SourceReader {
 
 	public String getNextChunk(Long pieceToWork, Integer numberOfLines) {
 //		if (pieceToWork%10==0)
-		System.out.println(pieceToWork+" nextChunk "+System.currentTimeMillis());
+		System.out.println("Working on chunk number:"+pieceToWork);
 		StringBuffer sb = new StringBuffer();
 		for (int x = 0; x < numberOfLines; x++) {
 			if (!it.hasNext()) {
@@ -86,9 +95,13 @@ public class SourceReader {
 		}
 		return sb.toString();
 	}
+	/*
+	 *  read the chunk skipping all line before chunk we want to read
+	 *  if we found end of file we set the final chunk
+	 */
 	public String getNextChunkSkip(Long pieceToWork, Integer numOfLines) throws IOException {
 		//if (pieceToWork%2==0)
-		System.out.println(pieceToWork+" nextChunkSkip "+System.currentTimeMillis());
+//		System.out.println(pieceToWork+" nextChunkSkip "+System.currentTimeMillis());
 
 		for (Long x = 0L; x < pieceToWork * numOfLines; x++) {
 			if (!it.hasNext()) {
